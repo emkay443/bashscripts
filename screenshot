@@ -7,7 +7,7 @@
 # Dependencies: scrot, curl, zenity, xclip, sox, libnotify-bin
 #
 # Author: Michael Koch (m<DOT>koch<AT>emkay443<DOT>de)
-# Version: 2016-01-08
+# Version: 2016-01-08_1
 # License: GNU General Public License v3 (http://www.gnu.de/documents/gpl-3.0.en.html)
 #
 # Changelog at the end of the script
@@ -50,6 +50,11 @@ sleep_time="0.2"
 
 # Resolution and offset for display mode
 resolution="1920x1080+0+120"
+
+# Enable to draw a "black box" in desktop mode if you use two monitors with different resolutions
+# Position and size of black box (xpos,ypos width,height))
+desktop_black_box_enabled=true
+desktop_black_box_coords="0,0 1920,120"
 
 # Disable the following option
 # if you don't want to paste the screenshot's URL to the specified upload log
@@ -202,6 +207,9 @@ if [ ! -z "$1" ]; then
 	case $screenshot_type in
 		"desktop")
 			$scrot_cmd -q 0 "$file_path"
+			if [ $desktop_black_box_enabled ]; then
+				convert "$file_path" -fill black -draw "rectangle $desktop_black_box_coords" "$file_path"
+			fi
 			;;
 		"window")
 			$scrot_cmd -u -b -q 0 "$file_path"
