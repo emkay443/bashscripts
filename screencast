@@ -1,0 +1,186 @@
+#!/bin/bash
+# FFMPEG screen recording script
+# Capable of recording with microphone input (optional)
+# Fully compatible with Ubuntu 13.04 and the ffmpeg version in its repositories
+#
+# Dependencies: ffmpeg
+# Optional: zenity (for GUI dialogs), xterm (GUI terminal)
+#
+# Author: Michael Koch (Emkay443) (m<DOT>koch<AT>emkay443<DOT>de)
+# Version: 2016-01-08
+# License: GNU General Public License v3 (http://www.gnu.de/documents/gpl-3.0.en.html)
+
+###################
+## CONFIGURATION ##
+###################
+
+# Get XDG user dirs variables
+. $HOME/.config/user-dirs.dirs
+
+# Number of threads that should be used (0: automatic)
+threads=0
+
+# Size and offset of your recording
+area_size=1920x1080
+offset_x=0
+offset_y=120
+
+# Microphone device name (pulse for PulseAudio, hw:0,0 or similar for ALSA)
+mic_device=pulse
+
+# Sound codec (should work with Ubuntu's ffmpeg automagically)
+sound_codec=pcm_s16le
+
+# Video codec (should work out of the box as well)
+video_codec=libx264
+
+# Franes per second, lower is faster (but more looks better)
+fps=30
+
+# File directory and name
+file_dir="$XDG_VIDEOS_DIR"
+file_date=$(date +%d%m%Y_%H.%M.%S)
+video_file_extension="mov"
+sound_file_extension="wav"
+video_file_path="$file_dir/videocast_$file_date.$video_file_extension"
+sound_file_path="$file_dir/soundcast_$file_date.$sound_file_extension"
+
+# Sound recording command
+# Example for PulseAudio: http://pastebin.com/MwMK3KUy
+# This has to exist and function properly, otherwise the sound record feature won't work!
+# Also, if your sound recording program/script uses something externally
+# which doesn't get killed properly by this script, change sound_record_util to that external program
+# otherwise leave it the same as sound_record_cmd
+sound_record_cmd="$HOME/bin/pulserecord"
+sound_record_parameters="$sound_file_path"
+sound_record_util="sox"
+
+# ffmpeg binary file path
+ffmpeg_cmd="/usr/bin/ffmpeg"
+
+# You also need a newer version of ffmpeg to combine video and audio without losing the microphone track!
+# Download the static version of ffmpeg from this site:
+# http://ffmpeg.gusari.org/static/
+# untar it (tar -xzvf) and move the binaries somewhere you can execute them from.
+#
+# If you downloaded a new, static version of ffmpeg, change the following variable to true
+# to enable combining the sound and video after recording
+# and change the path to your new, static ffmpeg binary file
+ffmpeg_static_enabled=true
+ffmpeg_static_cmd="$HOME/bin/ffmpeg_static"
+
+#########################################################################################
+# WARNING: You should be careful when changing any code below. Modify at your own risk! #
+#########################################################################################
+
+######################
+## HELPER VARIABLES ##
+######################
+
+video_record_nomic_cmd="$ffmpeg_cmd -f x11grab -r $fps -s $area_size -i :0.0+$offset_x,$offset_y -vcodec $video_codec -vpre lossless_ultrafast -threads $threads $video_file_path"
+video_record_mic_cmd="$ffmpeg_cmd -f alsa -i $mic_device -f x11grab -r $fps -s $area_size -i :0.0+$offset_x,$offset_y -acodec $sound_codec -vcodec $video_codec -vpre lossless_ultrafast -threads $threads $video_file_path"
+
+##################
+## MAIN PROGRAM ##
+##################
+
+# If running in a terminal window, don't use graphical dialogs
+# else use zenity
+if [ -t 0 ]; then
+	echo "Stop recording with CTRL-C"
+	echo "Record with microphone? [Y|n]"
+	read ans
+	case $ans in
+		n|N)
+			record_with_mic=false
+			;;
+		*)
+			record_with_mic=true
+			;;
+	esac
+	echo "Record with sound? [Y|n]"
+	read ans
+	case $ans in
+		n|N)
+			record_with_sound=false
+			;;
+		*)
+			record_with_sound=true
+			;;
+	esac
+	if $record_with_sound; then
+		$sound_record_cmd $sound_record_parameters &
+	fi
+	if $record_with_mic; then
+		$video_record_mic_cmd
+	else
+		$video_record_nomic_cmd
+	fi
+	if $record_with_sound; then
+		sound_record_pid="$(pidof -s -x $(basename $sound_record_util))"
+		if [ ! -z $sound_record_pid ]; then kill $sound_record_pid; fi
+	fi
+	if $ffmpeg_static_enabled; then
+		echo "Combine sound and video file? [Y|n]"
+		echo "This can take some time and CPU power!"
+		read ans
+		case $ans in
+			n|N)
+				ffmpeg_static_enabled=false # We have to do this for the text output, without adding another variable
+				;;
+			*)
+				tmp_video_file_path="/tmp/videocast_$file_date.$video_file_extension"
+				$ffmpeg_static_cmd -i $video_file_path -i $sound_file_path -filter_complex amix=inputs=2:duration=first $tmp_video_file_path
+				video_file_path="$file_dir/videocast_combined_$file_date.$video_file_extension"
+				mv "$tmp_video_file_path" $video_file_path
+				;;
+		esac
+	fi
+	echo "Done."
+	echo "You can find your video at $video_file_path"
+	if $record_with_sound && ! $ffmpeg_static_enabled; then 
+		echo "and your audio recording at $sound_file_path"
+		echo "To combine them properly, use a video editor like OpenShot or Pitivi"
+	fi
+else
+	if zenity --question --text "Record with microphone?" --title "Question"; then
+		record_with_mic=true
+	else
+		record_with_mic=false
+	fi
+	if zenity --question --text "Record with sound?" --title "Question"; then
+		record_with_sound=true
+	else
+		record_with_sound=false
+	fi
+	zenity --info --text "Stop recording with CTRL-C"
+
+	if $record_with_mic; then
+		if $record_with_sound; then
+			xterm -e "($sound_record_cmd $sound_record_parameters &); $video_record_mic_cmd"
+		else
+			xterm -e "$video_record_mic_cmd"
+		fi
+	else
+		if $record_with_sound; then
+			xterm -e "($sound_record_cmd $sound_record_parameters &); $video_record_nomic_cmd"
+		else
+			xterm -e "$video_record_nomic_cmd"
+		fi
+	fi
+	if $record_with_sound; then
+		if $ffmpeg_static_enabled && zenity --question --text "Combine sound and video file?\n\nThis can take some time and CPU power!" --title "Question"; then
+			tmp_video_file_path="/tmp/videocast_$file_date.$video_file_extension"
+			xterm -e "$ffmpeg_static_cmd -i $video_file_path -i $sound_file_path -filter_complex amix=inputs=2:duration=first $tmp_video_file_path"
+			video_file_path="$file_dir/videocast_combined_$file_date.$video_file_extension"
+			mv "$tmp_video_file_path" "$video_file_path"
+			zenity --info --text "Done.\nYou can find your video at $video_file_path" --title "Success"
+		else
+			zenity --info --text "Done.\nYou can find your video at $video_file_path\nand your audio recording at $sound_file_path\n\nTo combine them properly, use a video editor like OpenShot or Pitivi" --title "Success"
+		fi
+	else
+		zenity --info --text "Done.\nYou can find your video at $video_file_path" --title "Success"
+	fi
+fi
+
+exit 0

@@ -1,0 +1,42 @@
+#!/bin/bash
+# Lädt ein Bild auf imgur hoch und legt den Link in die Zwischenablage
+# 
+# Author: Michael Koch (m.koch<AT>emkay443<DOT>de)
+# Version: 2013-08-11_01
+# Lizenz: Copyleft
+
+# Abhängigkeiten prüfen
+if [[ ! "$(which curl)" ]]; then toInst=$toInst" curl"; fi
+
+# Wenn alles okay: Hochladen und Link in Zwischenablage legen
+if [[ -z $toInst ]]; then
+	SAVEIFS=$IFS
+	for file in "$@"; do
+		notify-send --hint=int:transient:1 "Upload" "Das Bild wird hochgeladen..."
+		# Versuche das Bild hochzuladen (via curl) und lege die Rückgabe auf die Var. $TEXT
+		TEXT=$(curl -F "image"=@"$file" -F "key"="5d317f0bee23b282473522e1aa68f621" http://imgur.com/api/upload.xml);
+		# Wenn die Rückgabe overload, 404 oder error beinhaltet, gebe Fehlermeldung aus
+		if [[ "$TEXT" == *overload* ]]; then
+			notify-send --hint=int:transient:1 "Imgur Server überlastet" "Bild konnte nicht hochgeladen werden.\nDie Server sind überlastet.";
+		elif [[ "$TEXT" == *404* ]]; then
+			notify-send --hint=int:transient:1 "Imgur Server nicht erreichbar" "Bild konnte nicht hochgeladen werden.\nDie Server sind nicht erreichbar (Fehler 404)";
+		elif [[ "$TEXT" == *error* ]]; then
+			notify-send --hint=int:transient:1 "Imgur Server nicht erreichbar" "Bild konnte nicht hochgeladen werden.\nDie Server sind nicht erreichbar (unbekannter Fehler)";
+		else
+			# Ansonsten beschneide den Text um unnötigen Kram
+			# und lege den Link zum Bild in die Zwischenablage
+			TEXT=$(echo -e "$TEXT" | grep -Eo '<[a-z_]+>http[^<]+'|sed 's/^<.\|_./\U&/g;s/_/ /;s/<\(.*\)>/\1:\ /' | awk 'NR == 1' | sed -e 's/Original Image: //' | tr -d '\n');
+			echo -e "$TEXT" | xclip -sel clip
+			notify-send --hint=int:transient:1 "Imgur Upload" "Upload erfolgreich.\n\nLink: <a href='$TEXT'>$TEXT</a>\n\nDer Link zu dem Bild liegt in der Zwischenablage."
+			play /usr/share/sounds/freedesktop/stereo/complete.oga
+		fi
+	done
+	IFS=$SAVEIFS
+else
+	# Abhängigkeitsprobleme: Nutzer darüber aufmerksam machen.
+	notify-send "FEHLER!" "Abhängigkeitsprobleme!"
+	echo "Folgende Pakete fehlen auf Ihrem System:$toInst"
+	zenity --warning --title "Abhängigkeitsprobleme" --text "Folgende Pakete fehlen auf Ihrem System:\n$toInst" 0 0
+	exit 1
+fi
+exit 0
