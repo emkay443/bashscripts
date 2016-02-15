@@ -25,7 +25,7 @@ fi
 # download image
 wget -O $wp_file "$url"
 
-if [ "$(which xfdesktop)" ]; then
+if [ "$(pgrep xfdesktop)" ]; then
 	# make sure, DBUS is loaded correctly (make this script work with cron)
 	if [ -z "${DBUS_SESSION_BUS_ADDRESS}" ] ; then
 		. ${HOME}/.dbus/session-bus/`ls -rt ${HOME}/.dbus/session-bus/ | tail -1`
