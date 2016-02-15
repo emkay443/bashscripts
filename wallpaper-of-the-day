@@ -25,17 +25,20 @@ fi
 # download image
 wget -O $wp_file "$url"
 
-# make sure, DBUS is loaded correctly (make this script work with cron)
-if [ -z "${DBUS_SESSION_BUS_ADDRESS}" ] ; then
-	. ${HOME}/.dbus/session-bus/`ls -rt ${HOME}/.dbus/session-bus/ | tail -1`
-        export DBUS_SESSION_BUS_ADDRESS
-fi
+if [ "$(which xfdesktop)" ]; then
+	# make sure, DBUS is loaded correctly (make this script work with cron)
+	if [ -z "${DBUS_SESSION_BUS_ADDRESS}" ] ; then
+		. ${HOME}/.dbus/session-bus/`ls -rt ${HOME}/.dbus/session-bus/ | tail -1`
+	        export DBUS_SESSION_BUS_ADDRESS
+	fi
 
-for mon in "${monitors[@]}"; do
-	for ws in "${workspaces[@]}"; do
-		# set xfdesktop's wallpaper and refresh
-		DISPLAY=:0 xfconf-query -c xfce4-desktop -p /backdrop/screen0/monitor$mon/workspace$ws/last-image -s $wp_file
-		DISPLAY=:0 xfdesktop --reload
+	for mon in "${monitors[@]}"; do
+		for ws in "${workspaces[@]}"; do
+			# set xfdesktop's wallpaper and refresh
+			DISPLAY=:0 xfconf-query -c xfce4-desktop -p /backdrop/screen0/monitor$mon/workspace$ws/last-image -s $wp_file
+			DISPLAY=:0 xfdesktop --reload
+		done
 	done
-done
-
+elif [ "$(which setwallpaper)" ]; then
+	setwallpaper $wp_file
+fi
