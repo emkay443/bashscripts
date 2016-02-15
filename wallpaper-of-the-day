@@ -11,15 +11,16 @@
 
 # configuration
 wp_file=$XDG_PICTURES_DIR/wpotd
-random=false
+random=true
+subreddit=earthporn
 monitors=( HDMI-0 DVI-I-1 )
 workspaces=( 0 1 )
 
 # helper variable
 if $random; then
-	url=$(curl -s http://www.reddit.com/r/wallpapers/.rss | grep -o "http://i.imgur.com/[/a-zA-Z0-9.]\+" | shuf -n 1)
+	url=$(curl -s http://www.reddit.com/r/$subreddit/.rss | grep -o "http://i.imgur.com/[/a-zA-Z0-9.]\+" | shuf -n 1)
 else
-	url=$(curl -s http://www.reddit.com/r/wallpapers/.rss | grep -o "http://i.imgur.com/[/a-zA-Z0-9.]\+" | head -1)
+	url=$(curl -s http://www.reddit.com/r/$subreddit/.rss | grep -o "http://i.imgur.com/[/a-zA-Z0-9.]\+" | head -1)
 fi
 
 # download image
