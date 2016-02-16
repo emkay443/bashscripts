@@ -1,5 +1,5 @@
 #!/bin/bash
-# Fetches a random wallpaper from /r/wallpapers
+# Fetches a random wallpaper from /r/earthporn
 # and sets xfdesktop's wallpaper to it
 #
 # Author: Michael Koch (emkay443) (and others on reddit: http://redd.it/25wkxa)
@@ -12,34 +12,34 @@
 # configuration
 wp_file=$XDG_PICTURES_DIR/wpotd
 random=true
-subreddit=earthporn
 monitors=( HDMI-0 DVI-I-1 )
 workspaces=( 0 1 )
 
 # helper variable
 if $random; then
-	url=$(curl -s http://www.reddit.com/r/$subreddit/.rss | grep -o "http://i.imgur.com/[/a-zA-Z0-9.]\+" | shuf -n 1)
+	url=$(curl -s http://www.reddit.com/r/earthporn/.rss | grep -o "http://i.imgur.com/[/a-zA-Z0-9.]\+" | shuf -n 1)
 else
-	url=$(curl -s http://www.reddit.com/r/$subreddit/.rss | grep -o "http://i.imgur.com/[/a-zA-Z0-9.]\+" | head -1)
+	url=$(curl -s http://www.reddit.com/r/earthporn/.rss | grep -o "http://i.imgur.com/[/a-zA-Z0-9.]\+" | head -1)
 fi
 
 # download image
 wget -O $wp_file "$url"
 
-if [ "$(pgrep xfdesktop)" ]; then
-	# make sure, DBUS is loaded correctly (make this script work with cron)
-	if [ -z "${DBUS_SESSION_BUS_ADDRESS}" ] ; then
-		. ${HOME}/.dbus/session-bus/`ls -rt ${HOME}/.dbus/session-bus/ | tail -1`
-	        export DBUS_SESSION_BUS_ADDRESS
-	fi
+# make sure, DBUS is loaded correctly (make this script work with cron)
+if [ -z "${DBUS_SESSION_BUS_ADDRESS}" ] ; then
+	. ${HOME}/.dbus/session-bus/`ls -rt ${HOME}/.dbus/session-bus/ | tail -1`
+        export DBUS_SESSION_BUS_ADDRESS
+fi
 
+if [ "$(pidof xfdesktop)" ]; then
 	for mon in "${monitors[@]}"; do
 		for ws in "${workspaces[@]}"; do
 			# set xfdesktop's wallpaper and refresh
 			DISPLAY=:0 xfconf-query -c xfce4-desktop -p /backdrop/screen0/monitor$mon/workspace$ws/last-image -s $wp_file
-			DISPLAY=:0 xfdesktop --reload
 		done
 	done
-elif [ "$(which setwallpaper)" ]; then
-	setwallpaper $wp_file
+	DISPLAY=:0 xfdesktop --reload
+elif [ "$(pidof i3)" ]; then
+	feh --bg-fill $wp_file
 fi
+
