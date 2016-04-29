@@ -38,10 +38,10 @@ if [ "$(pidof xfdesktop)" ]; then
 	for mon in "${monitors[@]}"; do
 		for ws in "${workspaces[@]}"; do
 			# set xfdesktop's wallpaper and refresh
-			xfconf-query -c xfce4-desktop -p /backdrop/screen0/monitor$mon/workspace$ws/last-image -s $wp_file
+			DISPLAY=:0 xfconf-query -c xfce4-desktop -p /backdrop/screen0/monitor$mon/workspace$ws/last-image -s $wp_file
 		done
 	done
-	xfdesktop --reload
+	DISPLAY=:0 xfdesktop --reload
 elif [ "$(pidof i3)" ]; then
 	feh --bg-fill $wp_file
 fi
