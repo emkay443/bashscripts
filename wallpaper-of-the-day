@@ -3,7 +3,7 @@
 # and sets xfdesktop's wallpaper to it
 #
 # Author: Michael Koch (emkay443) (and others on reddit: http://redd.it/25wkxa)
-# Version: 2016-01-08_1
+# Version: 2016-04-29_1
 # License: GPL v3
 
 # get XDG variables
@@ -38,10 +38,10 @@ if [ "$(pidof xfdesktop)" ]; then
 	for mon in "${monitors[@]}"; do
 		for ws in "${workspaces[@]}"; do
 			# set xfdesktop's wallpaper and refresh
-			DISPLAY=:0 xfconf-query -c xfce4-desktop -p /backdrop/screen0/monitor$mon/workspace$ws/last-image -s $wp_file
+			xfconf-query -c xfce4-desktop -p /backdrop/screen0/monitor$mon/workspace$ws/last-image -s $wp_file
 		done
 	done
-	DISPLAY=:0 xfdesktop --reload
+	xfdesktop --reload
 elif [ "$(pidof i3)" ]; then
 	feh --bg-fill $wp_file
 fi
