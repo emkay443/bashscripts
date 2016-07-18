@@ -1,9 +1,27 @@
 #!/bin/bash
 # Lädt ein Bild auf imgur hoch und legt den Link in die Zwischenablage
-# 
+#
 # Author: Michael Koch (m.koch<AT>emkay443<DOT>de)
 # Version: 2013-08-11_01
 # Lizenz: Copyleft
+
+client_id="0000000000000000000000"
+
+function parse_json() {
+	echo $1 | \
+	sed -e 's/[{}]/''/g' | \
+	sed -e 's/", "/'\",\"'/g' | \
+	sed -e 's/" ,"/'\",\"'/g' | \
+	sed -e 's/" , "/'\",\"'/g' | \
+	sed -e 's/","/'\"---SEPERATOR---\"'/g' | \
+	awk -F=':' -v RS='---SEPERATOR---' "\$1~/\"$2\"/ {print}" | \
+	sed -e "s/\"$2\"://" | \
+	tr -d "\n\t" | \
+	sed -e 's/\\"/"/g' | \
+	sed -e 's/\\\\/\\/g' | \
+	sed -e 's/^[ \t]*//g' | \
+	sed -e 's/^"//'  -e 's/"$//'
+}
 
 # Abhängigkeiten prüfen
 if [[ ! "$(which curl)" ]]; then toInst=$toInst" curl"; fi
@@ -14,22 +32,11 @@ if [[ -z $toInst ]]; then
 	for file in "$@"; do
 		notify-send --hint=int:transient:1 "Upload" "Das Bild wird hochgeladen..."
 		# Versuche das Bild hochzuladen (via curl) und lege die Rückgabe auf die Var. $TEXT
-		TEXT=$(curl -F "image"=@"$file" -F "key"="5d317f0bee23b282473522e1aa68f621" http://imgur.com/api/upload.xml);
-		# Wenn die Rückgabe overload, 404 oder error beinhaltet, gebe Fehlermeldung aus
-		if [[ "$TEXT" == *overload* ]]; then
-			notify-send --hint=int:transient:1 "Imgur Server überlastet" "Bild konnte nicht hochgeladen werden.\nDie Server sind überlastet.";
-		elif [[ "$TEXT" == *404* ]]; then
-			notify-send --hint=int:transient:1 "Imgur Server nicht erreichbar" "Bild konnte nicht hochgeladen werden.\nDie Server sind nicht erreichbar (Fehler 404)";
-		elif [[ "$TEXT" == *error* ]]; then
-			notify-send --hint=int:transient:1 "Imgur Server nicht erreichbar" "Bild konnte nicht hochgeladen werden.\nDie Server sind nicht erreichbar (unbekannter Fehler)";
-		else
-			# Ansonsten beschneide den Text um unnötigen Kram
-			# und lege den Link zum Bild in die Zwischenablage
-			TEXT=$(echo -e "$TEXT" | grep -Eo '<[a-z_]+>http[^<]+'|sed 's/^<.\|_./\U&/g;s/_/ /;s/<\(.*\)>/\1:\ /' | awk 'NR == 1' | sed -e 's/Original Image: //' | tr -d '\n');
-			echo -e "$TEXT" | xclip -sel clip
-			notify-send --hint=int:transient:1 "Imgur Upload" "Upload erfolgreich.\n\nLink: <a href='$TEXT'>$TEXT</a>\n\nDer Link zu dem Bild liegt in der Zwischenablage."
-			play /usr/share/sounds/freedesktop/stereo/complete.oga
-		fi
+		TEXT=$(curl -H "Authorization: Client-ID $client_id" -F "image"=@"$file" https://api.imgur.com/3/upload.json);
+		TEXT=$(parse_json "$TEXT" link | sed 's/\\//g')
+		echo -e "$TEXT" | xclip -sel clip
+		notify-send --hint=int:transient:1 "Imgur Upload" "Upload erfolgreich.\n\nLink: <a href='$TEXT'>$TEXT</a>\n\nDer Link zu dem Bild liegt in der Zwischenablage."
+		play /usr/share/sounds/freedesktop/stereo/complete.oga
 	done
 	IFS=$SAVEIFS
 else
