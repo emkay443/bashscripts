@@ -7,7 +7,7 @@
 # Dependencies: scrot, curl, zenity, xclip, sox, libnotify-bin
 #
 # Author: Michael Koch (m<DOT>koch<AT>emkay443<DOT>de)
-# Version: 2016-01-08_1
+# Version: 2016-07-18_1
 # License: GNU General Public License v3 (http://www.gnu.de/documents/gpl-3.0.en.html)
 #
 # Changelog at the end of the script
@@ -15,6 +15,9 @@
 ###################
 ## CONFIGURATION ##
 ###################
+
+# imgur client id (get it from https://api.imgur.com)
+client_id="00000000000000000000"
 
 # get XDG variables
 . $HOME/.config/user-dirs.dirs
@@ -95,10 +98,27 @@ function printParmError {
 	exit 1
 }
 
+function parse_json() {
+	echo $1 | \
+	sed -e 's/[{}]/''/g' | \
+	sed -e 's/", "/'\",\"'/g' | \
+	sed -e 's/" ,"/'\",\"'/g' | \
+	sed -e 's/" , "/'\",\"'/g' | \
+	sed -e 's/","/'\"---SEPERATOR---\"'/g' | \
+	awk -F=':' -v RS='---SEPERATOR---' "\$1~/\"$2\"/ {print}" | \
+	sed -e "s/\"$2\"://" | \
+	tr -d "\n\t" | \
+	sed -e 's/\\"/"/g' | \
+	sed -e 's/\\\\/\\/g' | \
+	sed -e 's/^[ \t]*//g' | \
+	sed -e 's/^"//'  -e 's/"$//'
+}
+
 function doUpload {
 	$notification_cmd --hint=int:transient:1 "Upload" "The screenshot is being uploaded..."
 	# Try to upload the screenshot to imgur and put the results to the variable curl_response
-	curl_response=$(curl -F "image"=@"$file_path" -F "key"="5d317f0bee23b282473522e1aa68f621" http://imgur.com/api/upload.xml)
+	curl_response=$(curl -H "Authorization: Client-ID $client_id" -F "image"=@"$file_path" https://api.imgur.com/3/upload.json);
+	echo $curl_response
 	# Print error message if errors occur
 	if [[ "$curl_response" == *overload* ]]; then
 		$notification_cmd --hint=int:transient:1 "Imgur server overloaded" "The screenshot couldn't be uploaded\nThe servers are overloaded"
@@ -108,7 +128,7 @@ function doUpload {
 		$notification_cmd --hint=int:transient:1 "Imgur Server not reachable" "The screenshot couldn't be uploaded\nThe servers are not reachable (unknown error).\nCheck your network connection"
 	else
 		# Strip unneccessary stuff and put the image's URL to the clipboard
-		curl_response=$(echo -e "$curl_response" | grep -Eo '<[a-z_]+>http[^<]+'|sed 's/^<.\|_./\U&/g;s/_/ /;s/<\(.*\)>/\1:\ /' | awk 'NR == 1' | sed -e 's/Original Image: //' | tr -d '\n')
+		curl_response=$(parse_json "$curl_response" link | sed 's/\\//g')
 
 		if [ $clipboard_enabled ]; then echo $curl_response | $xclip_cmd -sel clip; fi
 
@@ -251,5 +271,8 @@ exit 0
 #############
 # CHANGELOG #
 #############
+# 2016-07-18	Michael Koch
+# * Fixed for API level 3
+#
 # 2013-09-10	Michael Koch
 # + Added an option to disable the delay before taking a screenshot
