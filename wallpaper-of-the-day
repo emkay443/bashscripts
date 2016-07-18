@@ -1,9 +1,9 @@
 #!/bin/bash
-# Fetches a random wallpaper from /r/earthporn
-# and sets xfdesktop's wallpaper to it
+# Fetches a random or the top wallpaper from a subreddit
+# and makes it XFCE's (or any other WM's) wallpaper
 #
 # Author: Michael Koch (emkay443) (and others on reddit: http://redd.it/25wkxa)
-# Version: 2016-04-29_1
+# Version: 2016-05-01_1
 # License: GPL v3
 
 # get XDG variables
@@ -42,7 +42,7 @@ if [ "$(pidof xfdesktop)" ]; then
 		done
 	done
 	xfdesktop --reload
-elif [ "$(pidof i3)" ]; then
+elif [ "$(pidof i3)" ]; then # replace with WM of choice
 	feh --bg-fill $wp_file
 fi
 
