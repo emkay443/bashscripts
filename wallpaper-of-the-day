@@ -19,9 +19,9 @@ useragent="Mozilla/5.0 (Windows NT 6.1; WOW64; rv:40.0) Gecko/20100101 Firefox/4
 
 # helper variable
 if $random; then
-	url=$(curl -A "$useragent" -s http://www.reddit.com/r/$subreddit/.rss | grep -o "http://i.imgur.com/[/a-zA-Z0-9.]\+" | shuf -n 1)
+	url=$(curl -A "$useragent" -s https://www.reddit.com/r/$subreddit/.rss | grep -o "http://i.imgur.com/[/a-zA-Z0-9.]\+" | shuf -n 1)
 else
-	url=$(curl -A "$useragent" -s http://www.reddit.com/r/$subreddit/.rss | grep -o "http://i.imgur.com/[/a-zA-Z0-9.]\+" | head -1)
+	url=$(curl -A "$useragent" -s https://www.reddit.com/r/$subreddit/.rss | grep -o "http://i.imgur.com/[/a-zA-Z0-9.]\+" | head -1)
 fi
 export DISPLAY=:0
 
