@@ -12,16 +12,16 @@
 # configuration
 wp_file=$XDG_PICTURES_DIR/wpotd
 random=true
-monitors=( HDMI-0 DVI-I-1 )
-workspaces=( 0 1 )
+monitors=( 0 1 2 )
+workspaces=( 0 1 2 3 )
 subreddit="earthporn" # i.e. wallpapers, earthporn, cats, awww
 useragent="Mozilla/5.0 (Windows NT 6.1; WOW64; rv:40.0) Gecko/20100101 Firefox/40.1"
 
 # helper variable
 if $random; then
-	url=$(curl -A "$useragent" -s https://www.reddit.com/r/$subreddit/.rss | grep -o "http://i.imgur.com/[/a-zA-Z0-9.]\+" | shuf -n 1)
+	url=$(curl -A "$useragent" -s https://www.reddit.com/r/$subreddit/.rss | grep -o -e "http://i.imgur.com/[/a-zA-Z0-9.]\+" -e "https://i.imgur.com/[/a-zA-Z0-9.]\+" -e "http://i.redd.it/[/a-zA-Z0-9.]\+" -e "https://i.redd.it/[/a-zA-Z0-9.]\+" | shuf -n 1)
 else
-	url=$(curl -A "$useragent" -s https://www.reddit.com/r/$subreddit/.rss | grep -o "http://i.imgur.com/[/a-zA-Z0-9.]\+" | head -1)
+	url=$(curl -A "$useragent" -s https://www.reddit.com/r/$subreddit/.rss | grep -o -e "http://i.imgur.com/[/a-zA-Z0-9.]\+" -e "https://i.imgur.com/[/a-zA-Z0-9.]\+" -e "http://i.redd.it/[/a-zA-Z0-9.]\+" -e "https://i.redd.it/[/a-zA-Z0-9.]\+" | head -1)
 fi
 export DISPLAY=:0
 
@@ -41,6 +41,7 @@ if [ "$(pidof xfdesktop)" ]; then
 			xfconf-query -c xfce4-desktop -p /backdrop/screen0/monitor$mon/workspace$ws/last-image -s $wp_file
 		done
 	done
+	#killall xfdesktop
 	xfdesktop --reload
 elif [ "$(pidof i3)" ]; then # replace with WM of choice
 	feh --bg-fill $wp_file
