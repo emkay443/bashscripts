@@ -29,6 +29,10 @@ scrot_cmd="/usr/bin/scrot"
 clipboard_enabled=true
 xclip_cmd="/usr/bin/xclip"
 
+# Enable to copy image data to clipboard after screenshot.
+# This will only be the case when not uploading to imgur
+clipboard_image_enabled=true
+
 # notify-send binary file path
 notification_enabled=true
 notification_cmd="/usr/bin/notify-send"
@@ -226,19 +230,19 @@ if [ ! -z "$1" ]; then
 	fi
 	case $screenshot_type in
 		"desktop")
-			$scrot_cmd -q 0 "$file_path"
+			$scrot_cmd -q 100 "$file_path"
 			if [ $desktop_black_box_enabled ]; then
 				convert "$file_path" -fill black -draw "rectangle $desktop_black_box_coords" "$file_path"
 			fi
 			;;
 		"window")
-			$scrot_cmd -u -b -q 0 "$file_path"
+			$scrot_cmd -u -b -q 100 "$file_path"
 			;;
 		"area")
-			$scrot_cmd -s -b -q 0 "$file_path"
+			$scrot_cmd -s -b -q 100 -d 0.1 "$file_path"
 			;;
 		"display")
-			$scrot_cmd -q 0 "$file_path"
+			$scrot_cmd -q 100 "$file_path"
 			convert "$file_path" -crop "$resolution" "$file_path""_crop"
 			file_path="$file_path""_crop"
 			;;
@@ -251,12 +255,22 @@ if [ ! -z "$1" ]; then
 	if [ ! $no_upload ]; then
 		if [ $force_upload ]; then
 			doUpload
-		elif zenity --question --text "Do you want to upload the screenshot to imgur?" --title "Question"; then
-			doUpload
+		else
+			if zenity --question --text "Do you want to upload the screenshot to imgur?" --title "Question"; then
+				doUpload
+			else
+				if [ $clipboard_image_enabled ]; then
+					xclip -sel clip -t image/png -i "$file_path"
+				fi
+			fi
+		fi
+	else
+		if [ $clipboard_image_enabled ]; then
+			xclip -sel clip -t image/png -i "$file_path"
 		fi
 	fi
 
-	# Remove 
+	# Remove
 	if [ $no_save ]; then
 		rm "$file_path"
 	fi
