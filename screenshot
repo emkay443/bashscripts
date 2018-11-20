@@ -239,7 +239,7 @@ if [ ! -z "$1" ]; then
 			$scrot_cmd -u -b -q 100 "$file_path"
 			;;
 		"area")
-			$scrot_cmd -s -b -q 100 -d 0.1 "$file_path"
+			$scrot_cmd -s -b -q 100 -d 0.001 "$file_path"
 			;;
 		"display")
 			$scrot_cmd -q 100 "$file_path"
